@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>YLM</title>
+    <!-- 메타데이터 정의 -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- 부트스트랩, JQuery CDN 포함 -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+    
+    <!-- 일부 부트스트랩 스타일 재정의 -->
+    <style>
+        body {
+            font: 400 15px Lato, sans-serif;
+            line-height: 1.8;
+            color: #818181;
+        }
+        h2 {
+            font-size: 24px;
+            text-transform: uppercase;
+            color: #303030;
+            font-weight: 600;
+            margin-bottom: 30px;
+        }
+        h4 {
+            font-size: 19px;
+            line-height: 1.375em;
+            color: #303030;
+            font-weight: 400;
+            margin-bottom: 30px;
+        }  
+        .jumbotron {
+            background-color: #db0021;
+            color: #fff;
+            padding: 100px 25px;
+            font-family: Montserrat, sans-serif;
+        }
+        .container-fluid {
+            padding: 60px 50px;
+        }
+        .bg-grey {
+            background-color: #f6f6f6;
+        }
+        .logo-small {
+            color: #db0021;
+            font-size: 50px;
+        }
+        .logo {
+            color: #db0021;
+            font-size: 200px;
+        }
+        .thumbnail {
+            padding: 0 0 15px 0;
+            border: none;
+            border-radius: 0;
+        }
+        .thumbnail img {
+            width: 100%;
+            height: 100%;
+            margin-bottom: 10px;
+        }
+        .navbar {
+            margin-bottom: 0;
+            background-color: #db0021;
+            z-index: 9999;
+            border: 0;
+            font-size: 12px !important;
+            line-height: 1.42857143 !important;
+            letter-spacing: 4px;
+            border-radius: 0;
+            font-family: Montserrat, sans-serif;
+        }
+        .navbar .navbar-brand {
+            color: #fff !important;
+        }
+        .navbar-default .navbar-toggle {
+            border-color: transparent;
+            color: #fff !important;
+        }
+        footer .glyphicon {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #db0021;
+        }
+    </style>
+</head>
+<body>
+    <!-- 페이지 가장 상단의 바 부분 -->
+    <nav class="navbar navbar-default navbar-fixed-top">
+        <div class="container">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="/">YLM</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 페이지 상단의 제목과 소개를 간단히 적어둔 부분 -->
+    <div class="jumbotron text-center">
+        <h1>Youtube Live Mirror</h1> 
+        <p>Mirroring, Monitoring Youtube Live Broadcasts</p> 
+    </div>
+    
+    <!-- 방송 리스트를 AJAX로 요청하는 스크립트 -->
+    <script>
+        $.ajax({
+            /* API 요청 URL */
+            url: '/api/list',
+            
+            /* 성공시 결과를 파싱하여 HTML 요소로 추가 */
+            success: function (data) {
+                var container = '<div class="container-fluid text-center"><br>';
+                for(var i = 0; i < data.items.length; i+=3){
+                    container += '<div class="row text-center">';
+                    for(var j = 0; j < 3; j++){
+                        if(i + j < 50){
+                            /* 한 줄에 네개의 방송을 HTML에 추가 */
+                            container += '<div class="col-sm-4">';
+                            container += '<a href="/view.html?v=' + data.items[i+j].video_id + '">';
+                            container += '<div class="thumbnail bg-grey">';
+                            container += '<img src="' + data.items[i+j].thumbnail + '" style="width:100% alt="Thumbnail">';
+                            container += '<p>' + data.items[i+j].title + '</p>';
+                            container += '</div></a></div>';
+                        }
+                    }
+                    container += '</div><br>';
+                }
+                container += '</div>';
+                $("#result").append(container);
+            },
+            
+            /* 실패시 콘솔에 에러 반환 */
+            error: function(request, status, error) {
+                console.log("code:" + request.status);
+                console.log("message:" + request.responseText);
+                console.log("error:" + error);
+            }
+        });
+    </script>
+    
+    <!-- 방송 리스트가 표시될 div -->
+    <div id="result">
+    </div>
+        
+    <!-- 푸터 -->
+    <footer class="container-fluid text-center">
+        <p>Youtube Live Mirror by <a>kavka65535@gmail.com</a></p>
+    </footer>
+        
+    </body>
+</html>

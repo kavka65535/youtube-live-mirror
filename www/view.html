@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>YLM</title>
+        <!-- 메타데이터 정의 -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        
+        <!-- 부트스트랩, JQuery Chart.js CDN 포함 -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0/dist/Chart.min.js" integrity="sha256-Uv9BNBucvCPipKQ2NS9wYpJmi8DTOEfTA/nH2aoJALw=" crossorigin="anonymous"></script>
+        <script src="/js/function.js"></script>
+        
+        <!-- 일부 부트스트랩 스타일 재정의 -->
+        <style>
+            body {
+                font: 400 15px Lato, sans-serif;
+                line-height: 1.8;
+                color: #818181;
+            }
+            h2 {
+                font-size: 24px;
+                text-transform: uppercase;
+                color: #303030;
+                font-weight: 600;
+                margin-bottom: 30px;
+            }
+            h4 {
+                font-size: 19px;
+                line-height: 1.375em;
+                color: #303030;
+                font-weight: 400;
+                margin-bottom: 30px;
+            }  
+            .jumbotron {
+                background-color: #db0021;
+                color: #fff;
+                padding: 100px 25px;
+                font-family: Montserrat, sans-serif;
+            }
+            .container-fluid {
+                padding: 60px 50px;
+            }
+            .bg-grey {
+                background-color: #f6f6f6;
+            }
+            .logo-small {
+                color: #db0021;
+                font-size: 50px;
+            }
+            .logo {
+                color: #db0021;
+                font-size: 200px;
+            }
+            .thumbnail {
+                padding: 0 0 15px 0;
+                border: none;
+                border-radius: 0;
+            }
+            .thumbnail img {
+                width: 100%;
+                height: 100%;
+                margin-bottom: 10px;
+            }
+            .navbar {
+                margin-bottom: 0;
+                background-color: #db0021;
+                z-index: 9999;
+                border: 0;
+                font-size: 12px !important;
+                line-height: 1.42857143 !important;
+                letter-spacing: 4px;
+                border-radius: 0;
+                font-family: Montserrat, sans-serif;
+            }
+            .navbar .navbar-brand {
+                color: #fff !important;
+            }
+            .navbar-default .navbar-toggle {
+                border-color: transparent;
+                color: #fff !important;
+            }
+            .chat-area {
+                height: 200px;
+                overflow-y: auto;
+            }
+        </style>
+    </head>
+    <body>
+        
+        <!-- 페이지 헤더 -->
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand" href="/">YLM</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 동영상 표시 영역 -->
+        <div class="container-fluid">
+            <div class="row content text-center">
+                <div class="col-sm-12">
+                    <script>
+                        /* url 파싱하여 파라메터 값을 가져옴 */
+                        var videoId = getQueryString().v;
+                        
+                        /* iframe 태그로 유튜브 동영상 포함 */
+                        /* 생방송이므로 자동재생 옵션을 줌 */
+                        document.write('<iframe ');
+                        document.write('width="100%" ');
+                        document.write('height="800px" ');
+                        document.write('src="https://www.youtube.com/embed/' + videoId);
+                        document.write('?rel=0;autoplay=1" ');
+                        document.write('frameborder="0" ');
+                        document.write('allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" ');
+                        document.write('allowfullscreen></iframe>');
+                    </script>
+                </div>
+            </div>
+            
+            <!-- 채팅 메세지가 표시될 영역 선언 -->
+            <div class="row content">
+                <div class="col-sm-12">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">Chatings</div>
+                        <div class="panel-body chat-area" id="chatArea">
+                            <ul>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 차트가 그려질 영역 선언 -->
+            <div class="row content">
+                <div class="col-sm-12">
+                    <canvas id="myChart" width="100%" height="30"></canvas>
+                </div>
+            </div>
+            
+            <!-- 전체 키워드 순위가 그려질 영역 선언 -->
+            <div class="row content text-center">
+                <p><h3>Top Keywords</h3></p><br>
+                <div class="col-sm-4 text-center">
+                    <img src="/1.png"><br>
+                    <p id="1st"><h4></h4></p>
+                </div>
+                <div class="col-sm-4 text-center">
+                    <img src="/2.png"><br>
+                    <p id="2nd"><h4></h4></p>
+                </div>
+                <div class="col-sm-4 text-center">
+                    <img src="/3.png"><br>
+                    <p id="3rd"><h4></h4></p>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            /* 차트에 표시할 데이터 배열 선언 */
+            var labels = new Array(60);
+            var viewers = new Array(60);
+            var chats = new Array(60);
+            var ranks = new Array(60);
+            
+            /* chart.js 라이브러리를 활용한 차트 생성 */
+            var ctx = document.getElementById('myChart').getContext('2d');
+            var myChart = new Chart(ctx, {
+                // 그래프 종류 지정
+                // line: 선 그래프
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Viewers',
+                        yAxisID: 'Viewers',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgba(255, 99, 132)',
+                        
+                        // viewers 배열에 저장된 데이터 사용
+                        data: viewers
+                    }, {
+                        label: 'Chats',
+                        yAxisID: 'Chats',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235)',
+                        fill: false, 
+                        
+                        // chats 배열에 저장된 데이터 사용
+                        data: chats
+                    }],
+                    // labels 배열에 저장된 데이터를 하단 표시 라벨로 사용
+                    labels: labels,
+                },
+                options: {
+                    // 마우스 오버시 나타날 툹팁 내용 지정
+                    tooltips: {
+                        intersect: false,
+                        callbacks: {
+                            title: function(){
+                            },
+                            
+                            // 데이터 세부 내용 표시
+                            label: function(tooltipItem, data){
+                                var l = data.datasets[tooltipItem.datasetIndex].label;
+                                l += ': ' + tooltipItem.yLabel;
+                                return l;
+                            },
+                            
+                            // 하단에 키워드 출력
+                            footer: function(tooltipItem, data){
+                                var f = 'Most used words';
+                                f += '\n1: ' + ranks[tooltipItem[0].index][0];
+                                f += '\n2: ' + ranks[tooltipItem[0].index][1];
+                                f += '\n3: ' + ranks[tooltipItem[0].index][2];
+                                return f;
+                            }
+                        }
+                    },
+                    showTooltips: true,
+                    scales: {
+                        // x, y축 표시 설정
+                        xAxes: [{
+                            display: true,
+                            barPercentage: 1.0,
+                            
+                            // 항상 고정된 크기로 표시하도록 설정
+                            ticks: {
+                                autoSkip: false,
+                                maxTicksLimit: 30
+                            }
+                        }],
+                        yAxes: [{
+                            // 좌, 우에 각각 다른 눈금을 표시하도록 설정
+                            // 좌측은 시청자 수
+                            // 우측은 채팅의 수
+                            id: 'Viewers',
+                            type: 'linear',
+                            position: 'left',
+                            gridLines: {
+                                display: false
+                            },
+                            ticks: {
+                                fontColor: "#FF6384",
+                                beginAtZero: true
+                            },
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Viewers'
+                            }
+                        },{
+                            id: 'Chats',
+                            type: 'linear',
+                            position: 'right',
+                            gridLines: {
+                                display: false
+                            },
+                            ticks: {
+                                fontColor: "#36A2EB",
+                                beginAtZero: true
+                            },
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Chats'
+                            }
+                        }]
+                    }
+                }
+            });
+        </script>
+
+        <script>
+            /* 방송의 정보를 가져오는 함수 정의 */
+            function getInfo(videoId){
+                // AJAX 요청을 위한 객체 생성
+                url = '/api/liveInfo';
+                data = {'videoId': videoId};
+                var process = $.ajax({
+                    url: url,
+                    data: data,
+                    dataType: 'json'
+                });
+                
+                // AJAX 요청 성공시 수행되는 Promise 함수
+                process.done(function(data){
+                    // 현재 시청자 수 저장
+                    currentViewers = data.viewers;
+                    
+                    // 채팅 메세지 요청하는 함수 실행
+                    if (nextPageToken.length == 0){
+                        getChat(data.chatId);
+                    }
+                    // 페이지 토큰이 존재할 경우 토큰을 함께 파라메터로 넘김
+                    else{
+                        getChat(data.chatId, nextPageToken);
+                    }
+                });
+                
+                // AJAX 요청 실패시 수행되는 Promise 함수
+                process.fail(function(request, status, error) {
+                    // 콘솔에 에러 메세지 출력
+                    console.log("code:" + request.status);
+                    console.log("message:" + request.responseText);
+                    console.log("error:" + error);
+                });
+            }
+            
+            /* 채팅 메세지를 요청하는 함수 정의 */
+            function getChat(chatId, token = ""){
+                // AJAX 요청을 위한 객체 생성
+                url = '/api/chat';
+                if (token.length == 0) {
+                    data = {'chatId': chatId};
+                }
+                else{
+                    data = {'chatId': chatId,
+                           'pageToken': nextPageToken};
+                }
+                var process = $.ajax({
+                    url: url,
+                    data: data,
+                    dataType: 'json'
+                });
+                
+                // AJAX 요청 성공시 수행될 함수
+                process.done(function (data) {
+                    // 페이지 토큰을 변수에 저장
+                    nextPageToken = data.nextPageToken;
+                    // 채팅 메세지 내용을 배열에 저장
+                    if (data.hasOwnProperty('items')){
+                        chatCounter = data.items.length;
+                        for (var i = 0; i < data.items.length; i++){
+                            chatArray.push(data.items[i]);
+                        }
+                    }
+                    
+                    // 키워드 내용을 가져와 변수에 저장
+                    if (data.hasOwnProperty('ranks')){
+                        tops = [data.ranks[0], data.ranks[1], data.ranks[2]]
+                        ranks.shift();
+                        ranks.push(tops);
+                    }
+                    // 채팅의 개수 변수에 저장
+                    currentChats = chatCounter;
+                    wordRank = getTotalRank(ranks);
+                });
+                
+                // AJAX 요청 실패시 수행될 함수
+                process.fail(function(request, status, error) {
+                    console.log("code:" + request.status);
+                    console.log("message:" + request.responseText);
+                    console.log("error:" + error);
+                    tops = ["", "", ""]
+                    ranks.shift();
+                    ranks.push(tops);
+                });
+            }
+            
+            /* 채팅, 차트를 갱신하는 스크립트 */
+            /* 정보들을 저장할 변수들 선언 */
+            var currentViewers = 0; // 현재 시청자 수
+            var currentChats = 0; // 10초간 채팅 수
+            var chatArray = []; // 채팅 메세지 배열
+            var nextPageToken = ""; // 페이지 토큰
+            var wordRank = []; // 상위 3개 키워드
+            
+            // 채팅 메세지를 표시할 영역의 컨텍스트
+            var chatArea = document.getElementById('chatArea');
+            
+            /* 방송 정보 요청함수 실행 */
+            getInfo(videoId);
+            
+            /* 가져온 채팅이 시간에 맞게 출력되도록 구현 */
+            setInterval(function(){
+                for (var i = 0; i < chatArray.length; i++){
+                    var timestamp = new Date(chatArray[i].timestamp);
+                    if (timestamp < Date.now() - 10000){
+                        var time = timestamp.getHours();
+                        time += ':' + timestamp.getMinutes();
+                        time += ':' + timestamp.getSeconds();
+                        writeChat(chatArea, time, chatArray[i].message);
+                        chatArray.splice(i, 1);
+                    }
+                }
+            }, 1000);
+            
+            /* 10초에 한 번씩 수행할 정보를 업데이트 하는 스크립트 */
+            setInterval(function(){
+                /* 방송 정보를 요청하는 함수 재실행 */
+                getInfo(videoId);
+                
+                /* 현재 시간을 가져와 차트의 라벨로 사용 */
+                var date = new Date();
+                var label = date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
+                
+                /* 차트의 내용을 업데이트 */
+                updateChart(myChart, label, currentViewers, currentChats);
+                
+                /* 키워드 순위를 업데이트 */
+                document.getElementById('1st').innerHTML = "<h4>" + wordRank[0][0] + "</h4>";
+                document.getElementById('2nd').innerHTML = "<h4>" + wordRank[1][0] + "</h4>";
+                document.getElementById('3rd').innerHTML = "<h4>" + wordRank[2][0] + "</h4>";
+            }, 10000);
+        </script>
+        
+    
+        
+    <!-- 푸터 영역 -->
+    <footer class="container-fluid text-center">
+        <p>Youtube Live Mirror by <a>kavka65535@gmail.com</a></p>
+    </footer>
+        
+    </body>
+ </html>
